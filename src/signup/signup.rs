@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use bcrypt::{hash, DEFAULT_COST};
 use dotenvy::dotenv;
 use native_tls::TlsConnector;

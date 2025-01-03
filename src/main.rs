@@ -1,9 +1,7 @@
 use actix_web::{web, App, HttpServer};
-
 mod login;
 mod profileops;
 mod signup;
-
 use login::login::login;
 use profileops::createprofile::createprofilefn;
 use signup::signup::signup;

@@ -1,4 +1,4 @@
-use actix_web::{web, Httpresponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use dotenvy::dotenv;
 use native_tls::TlsConnector;
 use postgres_native_tls::MakeTlsConnector;
@@ -12,10 +12,11 @@ pub struct ProfileCreate {
     phonenumber: String,
     address: String,
     bio: String,
+    userid: String,
 }
 
 async fn connect_neondb() -> Result<Client, Box<dyn std::error::Error>> {
-    dotenv.ok();
+    dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
@@ -37,11 +38,11 @@ async fn connect_neondb() -> Result<Client, Box<dyn std::error::Error>> {
     Ok(client)
 }
 
-pub async fn createprofile(profile_data: web::Json<ProfileCreate>) -> impl Responder {
-    if profile_data.fullname.len < 5 {
+pub async fn createprofilefn(profile_data: web::Json<ProfileCreate>) -> impl Responder {
+    if profile_data.fullname.len() < 5 {
         return HttpResponse::BadRequest().json("Full name must be more than 5 character");
     }
-    if profile_data.phonenumber > 10 {
+    if profile_data.phonenumber.len() != 10 {
         return HttpResponse::BadRequest().json("Phone number must be 10 character long");
     }
     // Database Connection
@@ -49,4 +50,23 @@ pub async fn createprofile(profile_data: web::Json<ProfileCreate>) -> impl Respo
         Ok(connection) => connection,
         Err(_) => return HttpResponse::InternalServerError().json("Database connection failed"),
     };
+    match client
+        .execute(
+            "INSERT INTO userprofile (fullname, phonenumber, address, bio, userid) VALUES ($1, $2, $3, $4, $5)",
+                   &[
+                       &profile_data.fullname,
+                       &profile_data.phonenumber,
+                       &profile_data.address,
+                       &profile_data.bio,
+                       &profile_data.userid,
+                   ],
+        )
+        .await
+    {
+        Ok(_) => HttpResponse::Created().json("User profile hasbeen created successfully"),
+        Err(e) => {
+            eprintln!("Profile creation error:{:?}", e);
+            HttpResponse::InternalServerError().json("Registration failed")
+        }
+    }
 }
